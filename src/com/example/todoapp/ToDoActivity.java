@@ -6,24 +6,20 @@ import java.util.ArrayList;
 
 import org.apache.commons.io.FileUtils;
 
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
-import android.support.v4.app.Fragment;
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ListView;
-import android.os.Build;
 
 public class ToDoActivity extends Activity {
+	private static final String TAG = "ToDoActivity";
+
 	private ArrayList<String> toDoItems;
 	private ArrayAdapter<String> toDoAdapter;
 	private ListView lvItems;
@@ -36,7 +32,7 @@ public class ToDoActivity extends Activity {
 		etNewItem = (EditText) findViewById(R.id.etNewItem);
 		lvItems = (ListView) findViewById(R.id.lvItems);
 		readItems();
-		toDoAdapter = new ArrayAdapter<String>(getBaseContext(), 
+		toDoAdapter = new ArrayAdapter<String>(getBaseContext(),
 				android.R.layout.simple_list_item_1, toDoItems);
 		lvItems.setAdapter(toDoAdapter);
 		setupListViewListener();
@@ -44,9 +40,11 @@ public class ToDoActivity extends Activity {
 
 	private void setupListViewListener() {
 		lvItems.setOnItemLongClickListener(new OnItemLongClickListener() {
-			// abstract metnod that must be implemented for instantiation of OnItemLongClickListener type.
+			// abstract metnod that must be implemented for instantiation of
+			// OnItemLongClickListener type.
 			@Override
-			public boolean onItemLongClick (AdapterView<?> adapter, View item, int position, long id) {
+			public boolean onItemLongClick(AdapterView<?> adapter, View item,
+					int position, long id) {
 				toDoItems.remove(position);
 				// Changed base data, but not stuff in ListView
 				toDoAdapter.notifyDataSetChanged();
@@ -54,7 +52,41 @@ public class ToDoActivity extends Activity {
 				return true;
 			}
 		});
-		
+
+		lvItems.setOnItemClickListener(new OnItemClickListener() {
+			// abstract metnod that must be implemented for instantiation of
+			// OnItemLongClickListener type.
+			@Override
+			public void onItemClick(AdapterView<?> adapter, View item,
+					int position, long id) {
+				Intent i = new Intent(getBaseContext(), EditItemActivity.class);
+				// put "extras" into the bundle for access in the second
+				// activity
+				i.putExtra("position", position);
+				i.putExtra("edit_text", toDoItems.get(position));
+				// Start Edit activity, but want to get editted text back.
+				startActivityForResult(i, REQUEST_CODE);
+			}
+		});
+
+	}
+
+	static final int REQUEST_CODE = 5874;
+
+	@Override
+	protected void onActivityResult(int requestCode, int resultCode, Intent i) {
+		if (resultCode == RESULT_OK && requestCode == REQUEST_CODE) {
+			// Extract name value from result extras
+			String newText = i.getExtras().getString("edited_text");
+			// I probably could have cached the original position before calling
+			// the Edit activity
+			// and just used it when i got back here.
+			int newPos = i.getIntExtra("original_position", 0);
+			// Replace is a set method to a specific row.
+			toDoItems.set(newPos, newText);
+			toDoAdapter.notifyDataSetChanged();
+			writeItems();
+		}
 	}
 
 	public void onAddItem(View v) {
@@ -74,14 +106,15 @@ public class ToDoActivity extends Activity {
 			toDoItems = new ArrayList<String>();
 		}
 	}
-	
+
 	private void writeItems() {
 		File filesDir = getFilesDir();
 		File toDoFile = new File(filesDir, "todo.txt");
 		try {
 			FileUtils.writeLines(toDoFile, toDoItems);
 		} catch (IOException e) {
-			e.printStackTrace();;
+			e.printStackTrace();
+			;
 		}
 	}
 }
